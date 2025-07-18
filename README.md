@@ -58,7 +58,7 @@ ONNX/GGUF INT4 shards, JSON manifest API, WebGPU execution provider, SentencePie
 
 Clone the repo
 
-git clone https://github.com/your-org/privytune.git
+git clone https://github.com/MartinKamburov/PrivyTune.git
 cd privytune
 
 Environment
