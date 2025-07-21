@@ -107,21 +107,6 @@ Chat & Compare – interact with base & tuned model in side‑by‑side playgrou
 
 Export Adapter – download .safetensors for use in other LLM runtimes.
 
-📐 Architecture Overview
-
-┌────────────────────────────┐      ┌──────────────────────────────┐
-│        Frontend PWA        │◀───▶│      Spring Boot Backend     │
-│  • Model loader & cache    │      │  • Manifest & licensing API  │
-│  • WebGPU training engine  │      │  • Auth, presigned URL give  │
-│  • Chat + metrics charts   │      │  • Postgres metadata store   │
-└───────────▲─────┬───────────┘      └──────────────▲───────────────┘
-            │     │                               │
-            │     │ (WebGPU)                      │ (S3)
-            ▼     │                               ▼
-   GPU Compute    └── IndexedDB cache  ┌───────────────────┐
-   (LoRA shaders)                    │   S3 / CDN Storage  │
-                                     └───────────────────┘
-
 📄 License
 
 This project is licensed under the MIT License.
