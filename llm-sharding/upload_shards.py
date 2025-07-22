@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 BUCKET = os.getenv("S3_BUCKET")          # e.g. "my-privytune-models"
-PREFIX = "privytune/phi3-int4/"           # folder in your bucket
+PREFIX = "privytune/"           # folder in your bucket
 
 s3 = boto3.client("s3",
     aws_access_key_id    = os.getenv("AWS_ACCESS_KEY_ID"),
