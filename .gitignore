@@ -36,3 +36,7 @@ Desktop.ini
 
 # VS Code settings (if you're using VS Code)
 /.vscode/
+
+# Python LLM local folder shards
+/shard-models/
+.venv/
