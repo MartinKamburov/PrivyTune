@@ -1,0 +1,3 @@
+To enter the virtual environment put this in the console: .\.venv\Scripts\Activate.ps1
+
+How to run: python shard_model.py

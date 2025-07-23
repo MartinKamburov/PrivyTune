@@ -38,5 +38,5 @@ Desktop.ini
 /.vscode/
 
 # Python LLM local folder shards
-/shard-models/
+shard-models/
 .venv/

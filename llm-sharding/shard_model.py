@@ -7,8 +7,8 @@ load_dotenv()
 HF_TOKEN = os.getenv("HUGGING_FACE_TOKEN")
 
 # 1) Change these to target whatever model you like:
-MODEL_NAME     = "mistralai/Mistral-7B-Instruct-v0.3" 
-DIRECTORY_NAME = "shard-models/Mistral-7B-Instruct-v0.3"
+MODEL_NAME     = "microsoft/Phi-3-mini-4k-instruct" 
+DIRECTORY_NAME = "shard-models/Phi-3-mini-4k-instruct"
 
 # 2) Make sure OUT_DIR actually uses the variable:
 OUT_DIR = f"./{DIRECTORY_NAME}"
