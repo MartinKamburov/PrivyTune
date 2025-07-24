@@ -32,6 +32,7 @@ public class SecurityConfig {
                 // 2) URL rules
                 .authorizeHttpRequests(auth -> auth
                         // public endpoints:
+                        .requestMatchers("/api/v1/models/**").permitAll()
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         // private endpoints go here, there is no point in this if you have the code .anyRequest().authenticated() but I am just showing as an example
                         .requestMatchers("/api/auth/test-controller").authenticated()
