@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { downloadAndCacheShards } from '../utils/LlmShardDownloader';
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -10,19 +11,28 @@ export default function PrivyTuneChat() {
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; text: string }[]>([]);
   const [input, setInput] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch list of available models from backend on mount
   useEffect(() => {
-    fetch(`${API_BASE}/api/v1/models`)
-      .then((res) => res.json())
+    const url = `${API_BASE}/api/v1/models`;
+    console.log("Fetching models from", url);
+    fetch(url)
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json() as Promise<string[]>;
+      })
       .then((data) => {
-        setModels(data.map((m: any) => m.id));
-        // set default selection
-        if (data.length) setSelectedModel(data[0].id);
+        // `data` is string[]
+        setModels(data);
+        if (data.length) setSelectedModel(data[0]);
       })
       .catch((err) => console.error('Failed to fetch models:', err));
   }, []);
+
+  // console.log("Here are the models ", models);
 
   // Fetch manifest whenever selectedModel changes
   useEffect(() => {
@@ -33,6 +43,8 @@ export default function PrivyTuneChat() {
       .catch((err) => console.error('Failed to fetch manifest:', err));
   }, [selectedModel]);
 
+  console.log("Here is the manifest data: ", manifest);
+
   // Scroll to bottom whenever messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -42,17 +54,24 @@ export default function PrivyTuneChat() {
     setSelectedModel(e.target.value);
   }
 
-  function handleDownload() {
+  async function handleDownload() {
     if (!manifest) return;
-    // Example: download first shard
-    const url = manifest.files[0].url;
-    fetch(url)
-      .then((res) => res.arrayBuffer())
-      .then((buf) => {
-        console.log(`Downloaded shard for ${selectedModel}:`, buf.byteLength, 'bytes');
-        // Store in IndexedDB or process further
-      })
-      .catch((err) => console.error('Download error:', err));
+    setLoading(true);
+    setError(null);
+
+    try {
+      // 1) download + cache shards & tokenizer
+      await downloadAndCacheShards(manifest);
+
+      // 2) initialize the model in WebGPU
+      // const p = await loadLocalModel(manifest);
+      // setPipeline(p);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
   }
 
   function handleSend() {
@@ -116,7 +135,7 @@ export default function PrivyTuneChat() {
                 onClick={handleDownload}
                 className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 transition"
             >
-                Download Manifest
+                Download Model Locally
             </button>
           </div>
         </div>
