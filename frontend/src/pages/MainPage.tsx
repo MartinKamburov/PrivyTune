@@ -14,7 +14,7 @@ export default function PrivyTuneChat() {
 
   // Fetch list of available models from backend on mount
   useEffect(() => {
-    fetch(`${API_BASE}/api/models`)
+    fetch(`${API_BASE}/api/v1/models`)
       .then((res) => res.json())
       .then((data) => {
         setModels(data.map((m: any) => m.id));
@@ -27,7 +27,7 @@ export default function PrivyTuneChat() {
   // Fetch manifest whenever selectedModel changes
   useEffect(() => {
     if (!selectedModel) return;
-    fetch(`${API_BASE}/api/models/${selectedModel}`)
+    fetch(`${API_BASE}/api/v1/models/${selectedModel}`)
       .then((res) => res.json())
       .then((data) => setManifest(data))
       .catch((err) => console.error('Failed to fetch manifest:', err));
