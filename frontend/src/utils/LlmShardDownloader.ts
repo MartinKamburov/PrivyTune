@@ -1,21 +1,7 @@
 // This file is used to store the shard key-val pairs into the IndexedDB
 import * as idbKeyval from 'idb-keyval';
 import { sha256 } from './crypto';
-
-interface ShardEntry {
-  url: string;
-  sha256: string;
-}
-
-interface Manifest {
-    display_name: string;
-    license: string;
-    max_sequence_len: number;
-    model_id: string;
-    shards: ShardEntry[];
-    tokenizer_url: string;
-    version: string;
-}
+import type { Manifest } from '../models/manifest';
 
 
 export async function downloadAndCacheShards(
@@ -59,7 +45,14 @@ export async function downloadAndCacheShards(
   // 2) Finally, download & cache the tokenizer.json
   {
     const tokUrl = manifest.tokenizer_url;
-    const tok    = await fetch(tokUrl).then(r => r.json());
+    const resp   = await fetch(tokUrl);
+
+    // make sure we got back valid JSON, not an HTML error page
+    if (!resp.ok || !resp.headers.get('content-type')?.includes('application/json')) {
+      throw new Error(`Failed to fetch tokenizer.json: ${resp.status} ${resp.statusText}`);
+    }
+
+    const tok = await resp.json();
     await idbKeyval.set(tokUrl, tok);
 
     done++;

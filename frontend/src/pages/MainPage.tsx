@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { downloadAndCacheShards } from '../utils/LlmShardDownloader';
 import { loadLocalModel } from '../utils/LoadLocalModel';
 import { TextGenerationPipeline } from '@xenova/transformers';
+import { isModelCached } from '../utils/IsModelCached';
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -17,6 +18,7 @@ export default function PrivyTuneChat() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const [isCached, setIsCached] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch list of available models from backend on mount
@@ -36,7 +38,15 @@ export default function PrivyTuneChat() {
       .catch((err) => console.error('Failed to fetch models:', err));
   }, []);
 
-  // console.log("Here are the models ", models);
+  // whenever manifest loads, check the cache
+  useEffect(() => {
+    if (!manifest) return;
+    (async () => {
+      const ok = await isModelCached(manifest);
+      console.log("Here is the response from isModelCached: ", ok);
+      setIsCached(ok);
+    })();
+  }, [manifest]);
 
   // Fetch manifest whenever selectedModel changes
   useEffect(() => {
@@ -46,8 +56,6 @@ export default function PrivyTuneChat() {
       .then((data) => setManifest(data))
       .catch((err) => console.error('Failed to fetch manifest:', err));
   }, [selectedModel]);
-
-  console.log("Here is the manifest data: ", manifest);
 
   // Scroll to bottom whenever messages change
   useEffect(() => {
@@ -60,9 +68,7 @@ export default function PrivyTuneChat() {
 
   // ─────────── download shards + spin-up WebGPU pipeline ───────────
   const handleDownload = useCallback(async () => {
-    console.log("It got into handleDownload!")
-
-    if (!manifest || loading) return;     // guard
+    if (!manifest || loading || isCached) return;     // guard
 
     setLoading(true);
     setError(null);
@@ -72,7 +78,8 @@ export default function PrivyTuneChat() {
       // 1) download + cache shards & tokenizer
       await downloadAndCacheShards(manifest, (done, total) => {
         setProgress({ done, total });
-      });;
+      });
+      setIsCached(true);              // now it’s fully cached
 
       // 2) initialize model in WebGPU (this pulls from IndexedDB via env.fetch)
       const p = await loadLocalModel(manifest);
@@ -162,6 +169,14 @@ export default function PrivyTuneChat() {
                 <div className="text-sm text-gray-600">
                   {Math.floor((progress.done / progress.total) * 100)}%
                 </div>
+              </div>
+            )}
+
+            {pipeline ? (
+              <ChatUI pipeline={pipeline} />
+            ) : (
+              <div className="p-4 text-gray-600">
+                Please download the model to start chatting.
               </div>
             )}
 
