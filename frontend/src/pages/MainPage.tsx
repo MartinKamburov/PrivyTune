@@ -1,5 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { downloadAndCacheShards } from '../utils/LlmShardDownloader';
+import { loadLocalModel } from '../utils/LoadLocalModel';
+import { TextGenerationPipeline } from '@xenova/transformers';
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -9,10 +11,12 @@ export default function PrivyTuneChat() {
   const [models, setModels] = useState<string[]>([]);
   const [manifest, setManifest] = useState<any>(null);
   const [selectedModel, setSelectedModel] = useState<string>('');
+  const [pipeline, setPipeline] = useState<TextGenerationPipeline | null>(null);
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; text: string }[]>([]);
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [progress, setProgress] = useState({ done: 0, total: 0 });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch list of available models from backend on mount
@@ -54,25 +58,33 @@ export default function PrivyTuneChat() {
     setSelectedModel(e.target.value);
   }
 
-  async function handleDownload() {
-    if (!manifest) return;
+  // ─────────── download shards + spin-up WebGPU pipeline ───────────
+  const handleDownload = useCallback(async () => {
+    console.log("It got into handleDownload!")
+
+    if (!manifest || loading) return;     // guard
+
     setLoading(true);
     setError(null);
+    setProgress({ done: 0, total: manifest.shards.length + 1 });
 
     try {
       // 1) download + cache shards & tokenizer
-      await downloadAndCacheShards(manifest);
+      await downloadAndCacheShards(manifest, (done, total) => {
+        setProgress({ done, total });
+      });;
 
-      // 2) initialize the model in WebGPU
-      // const p = await loadLocalModel(manifest);
-      // setPipeline(p);
+      // 2) initialize model in WebGPU (this pulls from IndexedDB via env.fetch)
+      const p = await loadLocalModel(manifest);
+      console.log("Here is the variable p: ", p);
+      setPipeline(p);
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Unknown error');
+      setError(err.message ?? 'Unknown error');
     } finally {
       setLoading(false);
     }
-  }
+  }, [manifest, loading]);
 
   function handleSend() {
     if (!input.trim()) return;
@@ -117,7 +129,7 @@ export default function PrivyTuneChat() {
             />
             <button
               onClick={handleSend}
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
+              className="btn btn-primary text-white px-4 py-2 rounded hover:bg-green-700 transition"
             >
               Send
             </button>
@@ -131,12 +143,28 @@ export default function PrivyTuneChat() {
                 <option key={m} value={m}>{m}</option>
                 ))}
             </select>
-            <button
-                onClick={handleDownload}
-                className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 transition"
-            >
-                Download Model Locally
+            <button onClick={handleDownload} disabled={loading || !!pipeline} className="btn btn-primary text-white px-4 py-1 rounded hover:bg-blue-700 transition">
+              { pipeline
+                  ? 'Model Loaded'
+                  : loading
+                    ? `Downloading… (${progress.done}/${progress.total})`
+                    : 'Download Model Locally' }
             </button>
+
+            {loading && (
+              <div className="mt-2">
+                {/* HTML5 <progress> */}
+                <progress
+                  className="w-full"
+                  value={progress.done}
+                  max={progress.total}
+                />
+                <div className="text-sm text-gray-600">
+                  {Math.floor((progress.done / progress.total) * 100)}%
+                </div>
+              </div>
+            )}
+
           </div>
         </div>
       </div>

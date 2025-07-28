@@ -9,7 +9,7 @@ CLOUD_FRONT = os.getenv("CLOUD_FRONT_URL")
 
 # Source directory and public URL prefix
 LOCAL_DIR   = "shard-models/phi-3-mini-4k-instruct"
-URL_PREFIX  = f"{CLOUD_FRONT}/phi-3-mini-4k-instruct"
+URL_PREFIX  = f"https://{CLOUD_FRONT}/phi-3-mini-4k-instruct"
 
 # Core metadata
 manifest = {

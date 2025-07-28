@@ -18,29 +18,51 @@ interface Manifest {
 }
 
 
-export async function downloadAndCacheShards(manifest: Manifest) {
-    for (const { url, sha256: expected } of manifest.shards) {
-    // 1) attempt to reuse cached data
+export async function downloadAndCacheShards(
+  manifest: Manifest,
+  onProgress?: (completed: number, total: number) => void
+) {
+  const total = manifest.shards.length + 1; // +1 for tokenizer.json
+  let done = 0;
+
+  // 1) Download & cache each shard
+  for (const { url, sha256: expected } of manifest.shards) {
+    // Attempt to reuse cached data
     const cached = await idbKeyval.get<ArrayBuffer>(url);
     if (cached) {
       const actual = await sha256(cached);
       if (actual === expected) {
+        // Count it as done and report progress
+        done++;
+        onProgress?.(done, total);
         continue;
       }
     }
 
-    // 2) fetch anew
-    const res = await fetch(url);
-    const buf = await res.arrayBuffer();
+    // Fetch fresh
+    const buf = await fetch(url).then(r => r.arrayBuffer());
 
-    // 3) verify integrity
+    // Verify integrity
     const actual = await sha256(buf);
     if (actual !== expected) {
       throw new Error(`Checksum mismatch for shard: ${url}`);
     }
 
-    // 4) store in IndexedDB
+    // Store in IndexedDB
     await idbKeyval.set(url, buf);
+
+    // Count it and report
+    done++;
+    onProgress?.(done, total);
   }
 
+  // 2) Finally, download & cache the tokenizer.json
+  {
+    const tokUrl = manifest.tokenizer_url;
+    const tok    = await fetch(tokUrl).then(r => r.json());
+    await idbKeyval.set(tokUrl, tok);
+
+    done++;
+    onProgress?.(done, total);
+  }
 }
