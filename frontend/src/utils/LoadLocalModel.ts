@@ -1,10 +1,11 @@
-// src/utils/LoadLocalModel.ts
 import { pipeline, TextGenerationPipeline, env } from '@xenova/transformers';
 import * as idbKeyval from 'idb-keyval';
+import type { Manifest } from '../models/manifest';
 
 // 1) intercept fetches so that any request for a shard or tokenizer URL
 //    comes straight from IndexedDB if available
 ;(env as any).fetch = async (url: string, init?: RequestInit) => {
+  console.log('env.fetch →', url);
   const cached = await idbKeyval.get<ArrayBuffer|object>(url);
   if (cached) {
     // JSON responses need the correct header
@@ -16,18 +17,13 @@ import * as idbKeyval from 'idb-keyval';
     // otherwise it’s a binary shard
     return new Response(cached as ArrayBuffer);
   }
-  // fallback (should never happen once fully cached)
-  return fetch(url, init);
+  const resp = await fetch(url, init);
+  console.log('network fetch', url, '→', resp.status, resp.headers.get('content-type'));
+  return resp;
 };
 
 // 2) tell the library to never go to the Hub
 env.allowRemoteModels = false;
-
-export interface Manifest {
-  model_id:     string;
-  tokenizer_url:string;
-  shards:       { url: string; sha256: string }[];
-}
 
 /**
  * Given a manifest that lists your shards under
@@ -38,13 +34,20 @@ export interface Manifest {
 export async function loadLocalModel(
   manifest: Manifest
 ): Promise<TextGenerationPipeline> {
+  // Build a single options object and cast to any to bypass TS checks:
+  const opts: any = {
+    quantized:       true,             // INT4
+    local_files_only: true,            // no Hub calls
+    fetch:            (env as any).fetch,
+  };
+
+  const modelRoot = 'https://d3b5vir3v79bpg.cloudfront.net/phi-3-mini-4k-instruct';
+
+  // Pass that to pipeline:
   const gen = await pipeline(
-    'text-generation',      // the task
-    manifest.model_id,      // folder name on your CDN
-    {
-      quantized: true,      // INT4
-      // you don’t need to specify device—Xenova picks WebGPU by default
-    }
+    'text-generation',     // task
+    modelRoot,     // your CDN folder manifest.model_id
+    opts                   // casted any
   ) as TextGenerationPipeline;
 
   return gen;

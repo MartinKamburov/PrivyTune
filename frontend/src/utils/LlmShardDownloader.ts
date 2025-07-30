@@ -1,8 +1,6 @@
-// This file is used to store the shard key-val pairs into the IndexedDB
 import * as idbKeyval from 'idb-keyval';
 import { sha256 } from './crypto';
 import type { Manifest } from '../models/manifest';
-
 
 export async function downloadAndCacheShards(
   manifest: Manifest,
@@ -13,31 +11,23 @@ export async function downloadAndCacheShards(
 
   // 1) Download & cache each shard
   for (const { url, sha256: expected } of manifest.shards) {
-    // Attempt to reuse cached data
     const cached = await idbKeyval.get<ArrayBuffer>(url);
     if (cached) {
       const actual = await sha256(cached);
       if (actual === expected) {
-        // Count it as done and report progress
         done++;
         onProgress?.(done, total);
         continue;
       }
     }
 
-    // Fetch fresh
+    // fetch fresh shard
     const buf = await fetch(url).then(r => r.arrayBuffer());
-
-    // Verify integrity
     const actual = await sha256(buf);
     if (actual !== expected) {
       throw new Error(`Checksum mismatch for shard: ${url}`);
     }
-
-    // Store in IndexedDB
     await idbKeyval.set(url, buf);
-
-    // Count it and report
     done++;
     onProgress?.(done, total);
   }
@@ -45,11 +35,19 @@ export async function downloadAndCacheShards(
   // 2) Finally, download & cache the tokenizer.json
   {
     const tokUrl = manifest.tokenizer_url;
-    const resp   = await fetch(tokUrl);
+    console.log('🔍 fetching tokenizer from:', tokUrl);
+    const resp = await fetch(tokUrl);
+    console.log('→ status:', resp.status, 'content-type:', resp.headers.get('content-type'));
 
-    // make sure we got back valid JSON, not an HTML error page
-    if (!resp.ok || !resp.headers.get('content-type')?.includes('application/json')) {
+    // only error on non-OK status
+    if (!resp.ok) {
       throw new Error(`Failed to fetch tokenizer.json: ${resp.status} ${resp.statusText}`);
+    }
+
+    // warn if Content-Type isn’t JSON, but don’t throw
+    const ctype = resp.headers.get('content-type') || '';
+    if (!ctype.includes('json')) {
+      // console.warn(`tokenizer.json came back as '${ctype}', attempting to parse anyway.`);
     }
 
     const tok = await resp.json();

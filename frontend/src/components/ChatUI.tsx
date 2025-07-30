@@ -29,16 +29,31 @@ export function ChatUI({
     if (!input.trim() || sending) return;
     const prompt = input.trim();
     setInput('');
-    setMessages((m) => [...m, { role: 'user', text: prompt }]);
+    setMessages((prev) => [...prev, { role: 'user', text: prompt }]);
     setSending(true);
 
     try {
       const outputs = await pipeline(prompt, { max_new_tokens: maxNewTokens });
-      const reply = outputs[0].generated_text;
-      setMessages((m) => [...m, { role: 'assistant', text: reply }]);
+      const first   = outputs[0];
+
+      // Pick the right field
+      let raw = 
+        'generated_text' in first
+          ? first.generated_text     // string
+          : 'text' in first
+            ? first.text            // Chat or string
+            : (() => { throw new Error('Unexpected pipeline output'); })();
+
+      // Ensure we have a string
+      const reply: string =
+        typeof raw === 'string'
+          ? raw
+          : JSON.stringify(raw);
+
+      setMessages((prev) => [...prev, { role: 'assistant', text: reply }]);
     } catch (err: any) {
-      setMessages((m) => [
-        ...m,
+      setMessages((prev) => [
+        ...prev,
         { role: 'assistant', text: `Error: ${err.message}` },
       ]);
     } finally {
@@ -48,7 +63,7 @@ export function ChatUI({
 
   return (
     <div className="flex-1 flex flex-col border-t pt-4">
-      {/* Messages */}
+      {/* Message list */}
       <div className="flex-1 overflow-y-auto px-4 space-y-3 bg-white rounded-lg">
         {messages.map((msg, i) => (
           <div
@@ -65,7 +80,7 @@ export function ChatUI({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
+      {/* Input area */}
       <div className="mt-2 flex items-center space-x-2 px-4">
         <input
           className="flex-1 border rounded px-3 py-2 focus:outline-none focus:ring"

@@ -1,188 +1,132 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+// src/pages/PrivyTuneChat.tsx
+import React, { useState, useEffect, useCallback } from 'react';
+import type { TextGenerationPipeline } from '@xenova/transformers';
 import { downloadAndCacheShards } from '../utils/LlmShardDownloader';
-import { loadLocalModel } from '../utils/LoadLocalModel';
-import { TextGenerationPipeline } from '@xenova/transformers';
-import { isModelCached } from '../utils/IsModelCached';
+import { loadLocalModel }                  from '../utils/LoadLocalModel';
+import { isModelCached }                   from '../utils/IsModelCached';
+import { ChatUI }                          from '../components/ChatUI';
+import type { Manifest } from '../models/manifest';
 
-const API_BASE = import.meta.env.VITE_API_URL;
-
-const modelOptions = ['Phi-3-mini-4k', 'Gemma 2B'];
+const API_BASE = import.meta.env.VITE_API_URL
 
 export default function PrivyTuneChat() {
-  const [models, setModels] = useState<string[]>([]);
-  const [manifest, setManifest] = useState<any>(null);
-  const [selectedModel, setSelectedModel] = useState<string>('');
-  const [pipeline, setPipeline] = useState<TextGenerationPipeline | null>(null);
-  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; text: string }[]>([]);
-  const [input, setInput] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [progress, setProgress] = useState({ done: 0, total: 0 });
-  const [isCached, setIsCached] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [models,        setModels]       = useState<string[]>([])
+  const [selectedModel, setSelectedModel]= useState<string>('')
+  const [manifest,      setManifest]     = useState<Manifest | null>(null)
+  const [isCached,      setIsCached]     = useState(false)
+  const [pipeline,      setPipeline]     = useState<TextGenerationPipeline | null>(null)
 
-  // Fetch list of available models from backend on mount
-  useEffect(() => {
-    const url = `${API_BASE}/api/v1/models`;
-    console.log("Fetching models from", url);
-    fetch(url)
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json() as Promise<string[]>;
-      })
-      .then((data) => {
-        // `data` is string[]
-        setModels(data);
-        if (data.length) setSelectedModel(data[0]);
-      })
-      .catch((err) => console.error('Failed to fetch models:', err));
-  }, []);
+  const [loading,       setLoading]      = useState(false)
+  const [error,         setError]        = useState<string | null>(null)
+  const [progress,      setProgress]     = useState({ done: 0, total: 0 })
 
-  // whenever manifest loads, check the cache
+  // 1) load list of model IDs
   useEffect(() => {
-    if (!manifest) return;
-    (async () => {
-      const ok = await isModelCached(manifest);
-      console.log("Here is the response from isModelCached: ", ok);
-      setIsCached(ok);
-    })();
-  }, [manifest]);
+    fetch(`${API_BASE}/api/v1/models`)
+      .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json() })
+      .then(setModels)
+      .catch(e => setError(`Failed to list models: ${e.message}`))
+  }, [])
 
-  // Fetch manifest whenever selectedModel changes
+  // 2) fetch manifest when user picks a model
   useEffect(() => {
-    if (!selectedModel) return;
+    if (!selectedModel) return
     fetch(`${API_BASE}/api/v1/models/${selectedModel}`)
-      .then((res) => res.json())
-      .then((data) => setManifest(data))
-      .catch((err) => console.error('Failed to fetch manifest:', err));
-  }, [selectedModel]);
+      .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json() })
+      .then((m: Manifest) => {
+        setManifest(m)
+        setPipeline(null)
+      })
+      .catch(e => setError(`Failed to load manifest: ${e.message}`))
+  }, [selectedModel])
 
-  // Scroll to bottom whenever messages change
+  // 3) check IndexedDB cache
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (!manifest) return
+    ;(async () => {
+      const ok = await isModelCached(manifest)
+      setIsCached(ok)
+    })()
+  }, [manifest])
 
-  function handleModelChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    setSelectedModel(e.target.value);
-  }
-
-  // ─────────── download shards + spin-up WebGPU pipeline ───────────
+  // 4) download & initialize
   const handleDownload = useCallback(async () => {
-    if (!manifest || loading || isCached) return;     // guard
+    if (!manifest || loading || pipeline) return
 
-    setLoading(true);
-    setError(null);
-    setProgress({ done: 0, total: manifest.shards.length + 1 });
+    setLoading(true)
+    setError(null)
+    setProgress({ done: 0, total: manifest.shards.length + 1 })
 
     try {
-      // 1) download + cache shards & tokenizer
+      // a) fetch + cache shards
       await downloadAndCacheShards(manifest, (done, total) => {
-        setProgress({ done, total });
-      });
-      setIsCached(true);              // now it’s fully cached
+        setProgress({ done, total })
+      })
+      setIsCached(true)
 
-      // 2) initialize model in WebGPU (this pulls from IndexedDB via env.fetch)
-      const p = await loadLocalModel(manifest);
-      console.log("Here is the variable p: ", p);
-      setPipeline(p);
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message ?? 'Unknown error');
+      if (!isCached) {
+        await downloadAndCacheShards(manifest, (done, total) => {
+          setProgress({ done, total })
+        })
+        setIsCached(true)
+      }
+
+      // b) spin up the WebGPU pipeline
+      const p = await loadLocalModel(manifest)
+      setPipeline(p)
+    } catch (e: any) {
+      setError(`Error: ${e.message}`)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [manifest, loading]);
-
-  function handleSend() {
-    if (!input.trim()) return;
-    setMessages((msgs) => [...msgs, { role: 'user', text: input.trim() }]);
-    setInput('');
-    setTimeout(() => {
-      setMessages((msgs) => [...msgs, { role: 'assistant', text: `Echo (${selectedModel}): ${input.trim()}` }]);
-    }, 500);
-  }
+  }, [manifest, loading, isCached])
 
   return (
-    <div className="h-screen flex items-center justify-center bg-gray-100">
-      <div className="max-w-3xl w-full p-4 flex flex-col h-full">
+    <div className="h-screen flex flex-col bg-gray-100 p-4 space-y-4">
+      {/* ───────── Controls ───────── */}
+      <div className="flex items-center space-x-2">
+        <select
+          className="border rounded px-3 py-1"
+          value={selectedModel}
+          onChange={e => setSelectedModel(e.target.value)}
+        >
+          <option value="" disabled>
+            Select model…
+          </option>
+          {models.map(m => (
+            <option key={m} value={m}>{m}</option>
+          ))}
+        </select>
 
-        {/* Chat box with fixed height */}
-        <div className="h-[80vh] w-full border rounded-lg overflow-hidden flex flex-col">
-          {/* Messages area */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-gray-50">
-            {messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`px-3 py-2 rounded-lg max-w-xs whitespace-pre-wrap ` +
-                  (msg.role === 'user'
-                    ? 'self-end bg-blue-200'
-                    : 'self-start bg-white border')}
-              >
-                {msg.text}
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
+        <button
+          onClick={handleDownload}
+          disabled={loading || !!pipeline}
+          className="btn btn-primary text-white px-4 py-1 rounded disabled:opacity-50"
+        >
+          {pipeline
+            ? 'Model Loaded'
+            : loading
+              ? `Downloading… (${progress.done}/${progress.total})`
+              : isCached
+                ? 'Load Cached Model'
+                : 'Download Model'}
+        </button>
+      </div>
+
+      {error && <div className="text-red-600">{error}</div>}
+
+      {/* ───────── Chat Area ───────── */}
+      <div className="flex-1 border rounded-lg overflow-hidden bg-white">
+        {pipeline ? (
+          <ChatUI pipeline={pipeline} />
+        ) : (
+          <div className="h-full flex items-center justify-center text-gray-500">
+            {loading
+              ? 'Downloading model…'
+              : 'Please download & load the model to chat.'}
           </div>
-
-          {/* Input area */}
-          <div className="p-3 border-t flex items-center space-x-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              className="flex-1 border rounded px-3 py-2 focus:outline-none focus:ring"
-              placeholder="Type your message..."
-            />
-            <button
-              onClick={handleSend}
-              className="btn btn-primary text-white px-4 py-2 rounded hover:bg-green-700 transition"
-            >
-              Send
-            </button>
-
-            <select
-                value={selectedModel}
-                onChange={handleModelChange}
-                className="border rounded px-3 py-1 focus:outline-none focus:ring"
-            >
-                {models.map((m) => (
-                <option key={m} value={m}>{m}</option>
-                ))}
-            </select>
-            <button onClick={handleDownload} disabled={loading || !!pipeline} className="btn btn-primary text-white px-4 py-1 rounded hover:bg-blue-700 transition">
-              { pipeline
-                  ? 'Model Loaded'
-                  : loading
-                    ? `Downloading… (${progress.done}/${progress.total})`
-                    : 'Download Model Locally' }
-            </button>
-
-            {loading && (
-              <div className="mt-2">
-                {/* HTML5 <progress> */}
-                <progress
-                  className="w-full"
-                  value={progress.done}
-                  max={progress.total}
-                />
-                <div className="text-sm text-gray-600">
-                  {Math.floor((progress.done / progress.total) * 100)}%
-                </div>
-              </div>
-            )}
-
-            {pipeline ? (
-              <ChatUI pipeline={pipeline} />
-            ) : (
-              <div className="p-4 text-gray-600">
-                Please download the model to start chatting.
-              </div>
-            )}
-
-          </div>
-        </div>
+        )}
       </div>
     </div>
-  );
+  )
 }
