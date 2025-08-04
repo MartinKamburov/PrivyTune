@@ -55,31 +55,25 @@ export default function PrivyTuneChat() {
 
     setLoading(true)
     setError(null)
-    setProgress({ done: 0, total: manifest.shards.length + 1 })
+    setProgress({ done: 0, total: 0 })
 
     try {
-      // a) fetch + cache shards
+      // fetch + cache shards + all JSONs
       await downloadAndCacheShards(manifest, (done, total) => {
         setProgress({ done, total })
       })
       setIsCached(true)
 
-      if (!isCached) {
-        await downloadAndCacheShards(manifest, (done, total) => {
-          setProgress({ done, total })
-        })
-        setIsCached(true)
-      }
-
-      // b) spin up the WebGPU pipeline
+      // spin up the offline pipeline
       const p = await loadLocalModel(manifest)
       setPipeline(p)
+
     } catch (e: any) {
       setError(`Error: ${e.message}`)
     } finally {
       setLoading(false)
     }
-  }, [manifest, loading, isCached])
+  }, [manifest, loading, pipeline])
 
   return (
     <div className="h-screen flex flex-col bg-gray-100 p-4 space-y-4">

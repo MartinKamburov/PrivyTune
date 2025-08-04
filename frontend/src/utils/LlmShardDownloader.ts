@@ -6,7 +6,17 @@ export async function downloadAndCacheShards(
   manifest: Manifest,
   onProgress?: (completed: number, total: number) => void
 ) {
-  const total = manifest.shards.length + 1; // +1 for tokenizer.json
+  // 1) Build the full list of URLs we need to cache:
+  const base = manifest.tokenizer_url.replace(/tokenizer\.json$/, '');
+  const jsonFiles = [
+    manifest.tokenizer_url,             // tokenizer.json
+    `${base}config.json`,
+    `${base}generation_config.json`,
+    `${base}special_tokens_map.json`,
+    `${base}tokenizer_config.json`,
+  ];
+  // The total work is: number of shards + number of JSON files
+  const total = manifest.shards.length + jsonFiles.length;
   let done = 0;
 
   // 1) Download & cache each shard
@@ -32,28 +42,33 @@ export async function downloadAndCacheShards(
     onProgress?.(done, total);
   }
 
-  // 2) Finally, download & cache the tokenizer.json
-  {
-    const tokUrl = manifest.tokenizer_url;
-    console.log('🔍 fetching tokenizer from:', tokUrl);
-    const resp = await fetch(tokUrl);
-    console.log('→ status:', resp.status, 'content-type:', resp.headers.get('content-type'));
-
-    // only error on non-OK status
-    if (!resp.ok) {
-      throw new Error(`Failed to fetch tokenizer.json: ${resp.status} ${resp.statusText}`);
+  // 3) Download & cache all JSON files
+  for (const url of jsonFiles) {
+    // skip if already cached
+    if (await idbKeyval.get(url)) {
+      done++;
+      onProgress?.(done, total);
+      continue;
     }
 
-    // warn if Content-Type isn’t JSON, but don’t throw
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      console.warn(`⚠️ Failed to fetch ${url}: ${resp.status}`);
+      // we could choose to throw here, but for resilience we just log and continue
+      continue;
+    }
+
+    // ensure JSON-like response
     const ctype = resp.headers.get('content-type') || '';
     if (!ctype.includes('json')) {
-      // console.warn(`tokenizer.json came back as '${ctype}', attempting to parse anyway.`);
+      console.warn(`⚠️ ${url} returned ${ctype} — parsing as JSON anyway.`);
     }
 
-    const tok = await resp.json();
-    await idbKeyval.set(tokUrl, tok);
+    const json = await resp.json();
+    await idbKeyval.set(url, json);
 
     done++;
     onProgress?.(done, total);
   }
+
 }

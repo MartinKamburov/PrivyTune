@@ -1,3 +1,24 @@
+import { env } from '@xenova/transformers';
+import * as idbKeyval from 'idb-keyval';
+
+async function customFetch(url: string, init?: RequestInit): Promise<Response> {
+  console.log('🔍 customFetch:', url);
+  const cached = await idbKeyval.get<ArrayBuffer|object>(url);
+  if (cached) {
+    if (url.endsWith('.json')) {
+      return new Response(JSON.stringify(cached), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    return new Response(cached as ArrayBuffer);
+  }
+  return window.fetch(url, init);
+}
+
+// ① globally override env.fetch
+;(env as any).fetch = customFetch;
+env.allowRemoteModels = false;
+
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';

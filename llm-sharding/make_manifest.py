@@ -19,6 +19,9 @@ manifest = {
     "license":         "mit",
     "max_sequence_len": 4096,
     "tokenizer_url":   f"{URL_PREFIX}/tokenizer.json",
+    "tokenizer_config":   f"{URL_PREFIX}/tokenizer_config.json",
+    "generation_config":   f"{URL_PREFIX}/generation_config.json",
+    "special_tokens_map":   f"{URL_PREFIX}/special_tokens_map.json",
     "shards":          []
 }
 
