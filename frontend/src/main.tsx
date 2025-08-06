@@ -18,6 +18,9 @@ async function customFetch(url: string, init?: RequestInit): Promise<Response> {
 // ① globally override env.fetch
 ;(env as any).fetch = customFetch;
 env.allowRemoteModels = false;
+env.localModelPath    = 'https://d3b5vir3v79bpg.cloudfront.net/';
+
+console.log(env);
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';

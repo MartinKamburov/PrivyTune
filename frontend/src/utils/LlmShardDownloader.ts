@@ -6,24 +6,25 @@ export async function downloadAndCacheShards(
   manifest: Manifest,
   onProgress?: (completed: number, total: number) => void
 ) {
-  // 1) Build the full list of URLs we need to cache:
+  // Build the list of all JSON URLs alongside tokenizer.json
   const base = manifest.tokenizer_url.replace(/tokenizer\.json$/, '');
   const jsonFiles = [
-    manifest.tokenizer_url,             // tokenizer.json
+    manifest.tokenizer_url,            // tokenizer.json
     `${base}config.json`,
     `${base}generation_config.json`,
     `${base}special_tokens_map.json`,
     `${base}tokenizer_config.json`,
   ];
-  // The total work is: number of shards + number of JSON files
+
+  // Total work = number of shards + number of JSONs
   const total = manifest.shards.length + jsonFiles.length;
   let done = 0;
 
-  // 1) Download & cache each shard
+  // 1) Download & cache each shard (with checksum)
   for (const { url, sha256: expected } of manifest.shards) {
-    const cached = await idbKeyval.get<ArrayBuffer>(url);
-    if (cached) {
-      const actual = await sha256(cached);
+    const existing = await idbKeyval.get<ArrayBuffer>(url);
+    if (existing) {
+      const actual = await sha256(existing);
       if (actual === expected) {
         done++;
         onProgress?.(done, total);
@@ -31,18 +32,18 @@ export async function downloadAndCacheShards(
       }
     }
 
-    // fetch fresh shard
-    const buf = await fetch(url).then(r => r.arrayBuffer());
-    const actual = await sha256(buf);
+    const buffer = await fetch(url).then((r) => r.arrayBuffer());
+    const actual = await sha256(buffer);
     if (actual !== expected) {
       throw new Error(`Checksum mismatch for shard: ${url}`);
     }
-    await idbKeyval.set(url, buf);
+
+    await idbKeyval.set(url, buffer);
     done++;
     onProgress?.(done, total);
   }
 
-  // 3) Download & cache all JSON files
+  // 2) Download & cache all JSON files (no MIME‐type guard)
   for (const url of jsonFiles) {
     // skip if already cached
     if (await idbKeyval.get(url)) {
@@ -53,22 +54,15 @@ export async function downloadAndCacheShards(
 
     const resp = await fetch(url);
     if (!resp.ok) {
-      console.warn(`⚠️ Failed to fetch ${url}: ${resp.status}`);
-      // we could choose to throw here, but for resilience we just log and continue
+      console.warn(`⚠️ Failed to fetch ${url} (status ${resp.status})`);
       continue;
     }
 
-    // ensure JSON-like response
-    const ctype = resp.headers.get('content-type') || '';
-    if (!ctype.includes('json')) {
-      console.warn(`⚠️ ${url} returned ${ctype} — parsing as JSON anyway.`);
-    }
-
+    // parse & cache regardless of Content-Type
     const json = await resp.json();
     await idbKeyval.set(url, json);
 
     done++;
     onProgress?.(done, total);
   }
-
 }

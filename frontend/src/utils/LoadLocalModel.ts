@@ -4,13 +4,19 @@ import type { Manifest } from '../models/manifest';
 export async function loadLocalModel(
   manifest: Manifest
 ): Promise<TextGenerationPipeline> {
-  const modelRoot = manifest.tokenizer_url.replace(/tokenizer\.json$/, '');
 
   const opts: any = {
     quantized:        true,
     local_files_only: true,
-    fetch:            (env as any).fetch,   // ★ pass the hook
+    fetch:            (env as any).fetch,
   };
 
-  return (await pipeline('text-generation', modelRoot, opts)) as TextGenerationPipeline;
+  // pass **just** the model id, not the folder URL
+  const gen = await pipeline(
+    'text-generation',
+    manifest.model_id,           // => "phi-3-mini-4k-instruct"
+    opts
+  ) as TextGenerationPipeline;
+
+  return gen;
 }

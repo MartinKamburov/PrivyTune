@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@huggingface/transformers": "github:xenova/transformers.js#main",
     "@xenova/transformers": "^2.17.2",
     "bootstrap": "^5.3.7",
     "idb-keyval": "^6.2.2",
