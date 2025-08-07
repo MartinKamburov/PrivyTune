@@ -1,4 +1,4 @@
-import { env } from '@xenova/transformers';
+import { env } from '@huggingface/transformers';
 import * as idbKeyval from 'idb-keyval';
 
 async function customFetch(url: string, init?: RequestInit): Promise<Response> {
@@ -18,6 +18,7 @@ async function customFetch(url: string, init?: RequestInit): Promise<Response> {
 // ① globally override env.fetch
 ;(env as any).fetch = customFetch;
 env.allowRemoteModels = false;
+env.allowLocalModels  = true;
 env.localModelPath    = 'https://d3b5vir3v79bpg.cloudfront.net/';
 
 console.log(env);

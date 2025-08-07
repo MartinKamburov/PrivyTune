@@ -6,7 +6,7 @@ export async function downloadAndCacheShards(
   manifest: Manifest,
   onProgress?: (completed: number, total: number) => void
 ) {
-  // Build the list of all JSON URLs alongside tokenizer.json
+  // 1) Build list of all JSON URLs alongside tokenizer.json
   const base = manifest.tokenizer_url.replace(/tokenizer\.json$/, '');
   const jsonFiles = [
     manifest.tokenizer_url,            // tokenizer.json
@@ -16,11 +16,11 @@ export async function downloadAndCacheShards(
     `${base}tokenizer_config.json`,
   ];
 
-  // Total work = number of shards + number of JSONs
+  // 2) Compute total: shards + JSONs
   const total = manifest.shards.length + jsonFiles.length;
   let done = 0;
 
-  // 1) Download & cache each shard (with checksum)
+  // 3) Download & cache each shard (with checksum verification)
   for (const { url, sha256: expected } of manifest.shards) {
     const existing = await idbKeyval.get<ArrayBuffer>(url);
     if (existing) {
@@ -43,22 +43,18 @@ export async function downloadAndCacheShards(
     onProgress?.(done, total);
   }
 
-  // 2) Download & cache all JSON files (no MIME‐type guard)
+  // 4) **Always** re-download & cache each JSON file (no skip-if-cached)
   for (const url of jsonFiles) {
-    // skip if already cached
-    if (await idbKeyval.get(url)) {
+    const resp = await fetch(url);
+    if (!resp.ok) {
+      console.warn(`⚠️ Failed to fetch ${url}: ${resp.status}`);
+      // still count it so progress bar moves forward
       done++;
       onProgress?.(done, total);
       continue;
     }
 
-    const resp = await fetch(url);
-    if (!resp.ok) {
-      console.warn(`⚠️ Failed to fetch ${url} (status ${resp.status})`);
-      continue;
-    }
-
-    // parse & cache regardless of Content-Type
+    // parse as JSON regardless of Content-Type
     const json = await resp.json();
     await idbKeyval.set(url, json);
 
