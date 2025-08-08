@@ -1,39 +1,31 @@
 import os
-from dotenv import load_dotenv
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# Load your HUGGING_FACE_TOKEN from .env if required for private repos
-load_dotenv()
-HF_TOKEN = os.getenv("HUGGING_FACE_TOKEN")
-
-# 1) Change these to target whatever model you like:
-MODEL_NAME     = "microsoft/Phi-3-mini-4k-instruct" 
-DIRECTORY_NAME = "shard-models/Phi-3-mini-4k-instruct"
-
-# 2) Make sure OUT_DIR actually uses the variable:
-OUT_DIR = f"./{DIRECTORY_NAME}"
+MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"
+OUT_DIR = "./shard-models/qwen2.5-1.5b-instruct"
+HF_TOKEN = os.getenv("HUGGING_FACE_TOKEN")  # optional (public model)
 
 def main():
-    # 3) If the model is gated, pass use_auth_token:
+    tok = AutoTokenizer.from_pretrained(MODEL_NAME, token=HF_TOKEN)
+
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_NAME,
-        load_in_4bit=True,
-        use_auth_token=HF_TOKEN,           # only if HF requires login
-    )
-    tokenizer = AutoTokenizer.from_pretrained(
-        MODEL_NAME,
-        use_auth_token=HF_TOKEN,
+        token=HF_TOKEN,
+        device_map="cpu",            # just saving
+        low_cpu_mem_usage=True,      # reduces peak RAM while loading
+        quantization_config=None,    # make sure 4-bit isn’t triggered
+        trust_remote_code=False,     # not needed for Qwen2.5
+        torch_dtype=None,            # let HF decide
     )
 
-    # 4) This writes out shards into ./shard-models/Mistral-7B-Instruct-v0.3/
+    os.makedirs(OUT_DIR, exist_ok=True)
     model.save_pretrained(
         OUT_DIR,
-        max_shard_size="100MB",
-        safe_serialization=True,
+        max_shard_size="100MB",      # tweak if you want smaller shards
+        safe_serialization=True,     # write *.safetensors
     )
-    tokenizer.save_pretrained(OUT_DIR)
-
-    print("Sharding complete! Files are in:", OUT_DIR)
+    tok.save_pretrained(OUT_DIR)
+    print("Sharding complete:", OUT_DIR)
 
 if __name__ == "__main__":
     main()

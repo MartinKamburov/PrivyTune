@@ -61,4 +61,27 @@ export async function downloadAndCacheShards(
     done++;
     onProgress?.(done, total);
   }
+
+  // ─────────────────────────────────────────────────────────────
+  // 5) NEW: download & cache the quantized ONNX blob
+  //    (so `pipeline()` with quantized=true can read it locally)
+
+  // Build the URL where you uploaded it:
+  //   e.g. https://…/phi-3-mini-4k-instruct/onnx/model_quantized.onnx
+  const onnxUrl = `${base}onnx/model_quantized.onnx`;
+
+  // Only fetch+cache if not already in IDB
+  if (!(await idbKeyval.get<ArrayBuffer>(onnxUrl))) {
+    const res = await fetch(onnxUrl);
+    if (!res.ok) {
+      console.warn(`⚠️ Could not fetch ONNX quant file: ${res.status}`);
+    } else {
+      const onnxBuf = await res.arrayBuffer();
+      await idbKeyval.set(onnxUrl, onnxBuf);
+    }
+  }
+
+  // Count it as done (even if it failed, so UI doesn’t hang)
+  done++;
+  onProgress?.(done, total);
 }

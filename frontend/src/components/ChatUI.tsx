@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import type { TextGenerationPipeline } from '@xenova/transformers';
+import type { TextGenerationPipeline } from '@huggingface/transformers';
 
 export type Message = {
   role: 'user' | 'assistant';
