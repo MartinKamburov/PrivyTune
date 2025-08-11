@@ -1,6 +1,6 @@
 // src/pages/PrivyTuneChat.tsx
 import React, { useState, useEffect, useCallback } from 'react';
-import type { TextGenerationPipeline } from '@xenova/transformers';
+import type { TextGenerationPipeline } from '@huggingface/transformers';
 import { downloadAndCacheShards } from '../utils/LlmShardDownloader';
 import { loadLocalModel }                  from '../utils/LoadLocalModel';
 import { isModelCached }                   from '../utils/IsModelCached';

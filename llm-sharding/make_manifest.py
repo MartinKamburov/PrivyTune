@@ -49,6 +49,57 @@ def guess_max_seq_len():
             pass
     return 2048  # conservative default
 
+def find_onnx():
+    """Return dict with ONNX URLs/checksums if onnx/ exists, else None."""
+    onnx_dir = os.path.join(LOCAL_DIR, "onnx")
+    if not os.path.isdir(onnx_dir):
+        return None
+
+    # Prefer a deterministic model file: model_quantized.onnx > model.onnx > any .onnx
+    ranked = []
+    for f in os.listdir(onnx_dir):
+        if f.lower().endswith(".onnx"):
+            ranked.append(f)
+    if not ranked:
+        return None
+
+    def rank(fname: str) -> int:
+        lf = fname.lower()
+        if "model_quantized.onnx" in lf: return 0
+        if "model.onnx" in lf:          return 1
+        return 2
+
+    ranked.sort(key=rank)
+    model_fname = ranked[0]
+    model_path  = os.path.join(onnx_dir, model_fname)
+
+    # Common external data naming patterns
+    base = os.path.splitext(model_fname)[0]
+    candidates = [
+        f"{base}.onnx_data",             # model.onnx_data / model_quantized.onnx_data
+        f"{base}.data",                  # some exporters use .data
+    ]
+    ext_url = None
+    ext_sha = None
+    for cand in candidates:
+        cand_path = os.path.join(onnx_dir, cand)
+        if os.path.exists(cand_path):
+            ext_url = f"{URL_PREFIX}/onnx/{cand}"
+            ext_sha = sha256_file(cand_path)
+            break
+
+    return {
+        "model":          f"{URL_PREFIX}/onnx/{model_fname}",
+        "external_data":  ext_url,
+        "sha256":         sha256_file(model_path),
+        "external_sha256": ext_sha,
+        # naive hint: put "int8"/"int4" in filename to annotate quantization if you like
+        "quantization":   ("int8" if "int8" in model_fname.lower() else
+                           "int4" if "int4" in model_fname.lower() or "q4" in model_fname.lower()
+                           else None),
+        "size":           os.path.getsize(model_path)
+    }
+
 def main():
     assert os.path.isdir(LOCAL_DIR), f"Missing folder: {LOCAL_DIR}"
 
@@ -58,24 +109,32 @@ def main():
         "display_name":     MODEL_SLUG.replace("-", " ").title(),
         "version":          str(date.today()),
         "license":          LICENSE,
-        "format":           "safetensors",
+        "format":           None,  # set below
         "max_sequence_len": guess_max_seq_len(),
         "tokenizer_url":        None,
         "tokenizer_config":     file_url_if_exists("tokenizer_config.json"),
         "generation_config":    file_url_if_exists("generation_config.json"),
         "special_tokens_map":   file_url_if_exists("special_tokens_map.json"),
-        "shards": []
+        "onnx":                 None,   # filled if onnx/ exists
+        "shards":               []      # filled if .safetensors exist
     }
 
-    # Prefer tokenizer.json; otherwise tokenizer.model
+    # Prefer tokenizer.json; otherwise tokenizer.model; final fallback vocab/merges (BPE)
     tok_url = file_url_if_exists("tokenizer.json") or file_url_if_exists("tokenizer.model")
+    if not tok_url and os.path.exists(os.path.join(LOCAL_DIR, "vocab.json")) and os.path.exists(os.path.join(LOCAL_DIR, "merges.txt")):
+        # expose both for older GPT-2 style tokenizers
+        manifest["tokenizer_vocab_url"]  = f"{URL_PREFIX}/vocab.json"
+        manifest["tokenizer_merges_url"] = f"{URL_PREFIX}/merges.txt"
     manifest["tokenizer_url"] = tok_url
 
-    # Add shard entries (deterministic order)
-    shard_files = sorted([f for f in os.listdir(LOCAL_DIR) if f.endswith(".safetensors")])
-    if not shard_files:
-        raise SystemExit(f"No .safetensors shards found in {LOCAL_DIR}")
+    # ONNX (preferred for browser)
+    onnx_info = find_onnx()
+    if onnx_info:
+        manifest["onnx"] = onnx_info
+        manifest["format"] = "onnx"
 
+    # Sharded safetensors (optional; useful for training)
+    shard_files = sorted([f for f in os.listdir(LOCAL_DIR) if f.endswith(".safetensors")])
     for fname in shard_files:
         path = os.path.join(LOCAL_DIR, fname)
         manifest["shards"].append({
@@ -84,12 +143,21 @@ def main():
             "size":   os.path.getsize(path)
         })
 
+    # If no ONNX but there are shards, set format accordingly; if neither present, warn.
+    if not manifest["format"]:
+        manifest["format"] = "safetensors" if manifest["shards"] else "unknown"
+
     out_path = os.path.join(LOCAL_DIR, "manifest.json")
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2)
+
     print("✅ Wrote", out_path)
+    print("   format:", manifest["format"])
+    print("   has_onnx:", bool(onnx_info))
     print("   shards:", len(shard_files))
-    print("   tokenizer_url:", manifest["tokenizer_url"])
+    print("   tokenizer_url:", manifest.get("tokenizer_url") or
+                              f"{manifest.get('tokenizer_vocab_url')} + {manifest.get('tokenizer_merges_url')}")
+
 
 if __name__ == "__main__":
     main()
