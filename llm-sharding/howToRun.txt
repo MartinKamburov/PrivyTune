@@ -15,3 +15,10 @@ Command to export LLM to onnx format:
         --opset 17 `
         --batch_size 1 `
         .\shard-models\qwen2.5-1.5b-instruct\onnx 
+
+
+How to quantize the LLM model example: 
+    optimum-cli onnxruntime quantize `
+        --onnx_model .\shard-models\qwen2.5-1.5b-instruct\onnx `
+        -o .\shard-models\qwen2.5-1.5b-instruct\onnx-int8 `
+        --avx2

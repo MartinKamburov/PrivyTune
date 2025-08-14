@@ -75,6 +75,18 @@ export default function PrivyTuneChat() {
     }
   }, [manifest, loading, pipeline])
 
+  const pct = progress.total
+  ? Math.min(100, Math.round((progress.done / progress.total) * 100))
+  : 0;
+
+  const buttonText = pipeline
+  ? "Model Loaded"
+  : loading
+  ? `Downloading… (${pct}%)`
+  : isCached
+  ? "Load Cached Model"
+  : "Download Model";
+
   return (
     <div className="h-screen flex flex-col bg-gray-100 p-4 space-y-4">
       {/* ───────── Controls ───────── */}
@@ -97,13 +109,7 @@ export default function PrivyTuneChat() {
           disabled={loading || !!pipeline}
           className="btn btn-primary text-white px-4 py-1 rounded disabled:opacity-50"
         >
-          {pipeline
-            ? 'Model Loaded'
-            : loading
-              ? `Downloading… (${progress.done}/${progress.total})`
-              : isCached
-                ? 'Load Cached Model'
-                : 'Download Model'}
+          {buttonText}
         </button>
       </div>
 

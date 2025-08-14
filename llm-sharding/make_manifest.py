@@ -50,54 +50,61 @@ def guess_max_seq_len():
     return 2048  # conservative default
 
 def find_onnx():
-    """Return dict with ONNX URLs/checksums if onnx/ exists, else None."""
-    onnx_dir = os.path.join(LOCAL_DIR, "onnx")
-    if not os.path.isdir(onnx_dir):
+    """Return dict with ONNX URLs/checksums by scanning common subfolders."""
+    candidate_dirs = ["onnx", "onnx-int8", "onnx-quant"]
+    found = []  # list of (subdir, filename)
+
+    for sub in candidate_dirs:
+        d = os.path.join(LOCAL_DIR, sub)
+        if not os.path.isdir(d):
+            continue
+        for f in os.listdir(d):
+            if f.lower().endswith(".onnx"):
+                found.append((sub, f))
+
+    if not found:
         return None
 
-    # Prefer a deterministic model file: model_quantized.onnx > model.onnx > any .onnx
-    ranked = []
-    for f in os.listdir(onnx_dir):
-        if f.lower().endswith(".onnx"):
-            ranked.append(f)
-    if not ranked:
-        return None
+    def score(item):
+        sub, fname = item
+        name = fname.lower()
+        # prefer quantized -> int4/q4 -> int8/q8 -> canonical model.onnx -> everything else
+        if "model_quantized.onnx" in name: return 0
+        if "quant" in name and ("int4" in name or "q4" in name): return 1
+        if ("int8" in name or "q8" in name): return 2
+        if name == "model.onnx": return 3
+        return 4
 
-    def rank(fname: str) -> int:
-        lf = fname.lower()
-        if "model_quantized.onnx" in lf: return 0
-        if "model.onnx" in lf:          return 1
-        return 2
+    found.sort(key=score)
+    sub, model_fname = found[0]
+    model_dir  = os.path.join(LOCAL_DIR, sub)
+    model_path = os.path.join(model_dir, model_fname)
 
-    ranked.sort(key=rank)
-    model_fname = ranked[0]
-    model_path  = os.path.join(onnx_dir, model_fname)
-
-    # Common external data naming patterns
     base = os.path.splitext(model_fname)[0]
-    candidates = [
-        f"{base}.onnx_data",             # model.onnx_data / model_quantized.onnx_data
-        f"{base}.data",                  # some exporters use .data
-    ]
-    ext_url = None
-    ext_sha = None
-    for cand in candidates:
-        cand_path = os.path.join(onnx_dir, cand)
+    ext_url = ext_sha = None
+    for cand in (f"{base}.onnx_data", f"{base}.data"):
+        cand_path = os.path.join(model_dir, cand)
         if os.path.exists(cand_path):
-            ext_url = f"{URL_PREFIX}/onnx/{cand}"
+            ext_url = f"{URL_PREFIX}/{sub}/{cand}"
             ext_sha = sha256_file(cand_path)
             break
 
+    # infer quantization label from filename
+    n = model_fname.lower()
+    if ("int4" in n or "q4" in n):
+        q = "int4"
+    elif ("int8" in n or "q8" in n or "quant" in n):
+        q = "int8"
+    else:
+        q = None
+
     return {
-        "model":          f"{URL_PREFIX}/onnx/{model_fname}",
-        "external_data":  ext_url,
-        "sha256":         sha256_file(model_path),
-        "external_sha256": ext_sha,
-        # naive hint: put "int8"/"int4" in filename to annotate quantization if you like
-        "quantization":   ("int8" if "int8" in model_fname.lower() else
-                           "int4" if "int4" in model_fname.lower() or "q4" in model_fname.lower()
-                           else None),
-        "size":           os.path.getsize(model_path)
+        "model":            f"{URL_PREFIX}/{sub}/{model_fname}",
+        "external_data":    ext_url,
+        "sha256":           sha256_file(model_path),
+        "external_sha256":  ext_sha,
+        "quantization":     q,
+        "size":             os.path.getsize(model_path),
     }
 
 def main():
