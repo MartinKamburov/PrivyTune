@@ -1,8 +1,8 @@
 import os
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-MODEL_NAME = "Qwen/Qwen2.5-1.5B-Instruct"
-OUT_DIR = "./shard-models/qwen2.5-1.5b-instruct"
+MODEL_NAME = "onnx-community/Llama-3.2-1B-Instruct-q4f16"
+OUT_DIR = "./shard-models/Llama-3.2-1B-Instruct-q4f16"
 HF_TOKEN = os.getenv("HUGGING_FACE_TOKEN")  # optional (public model)
 
 def main():

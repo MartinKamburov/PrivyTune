@@ -6,6 +6,8 @@ import { loadLocalModel }                  from '../utils/LoadLocalModel';
 import { isModelCached }                   from '../utils/IsModelCached';
 import { ChatUI }                          from '../components/ChatUI';
 import type { Manifest } from '../models/manifest';
+import TestingLlmPage from './TestLLMPage';
+
 
 const API_BASE = import.meta.env.VITE_API_URL
 
@@ -53,26 +55,28 @@ export default function PrivyTuneChat() {
   const handleDownload = useCallback(async () => {
     if (!manifest || loading || pipeline) return
 
-    setLoading(true)
-    setError(null)
-    setProgress({ done: 0, total: 0 })
+    TestingLlmPage();
 
-    try {
-      // fetch + cache shards + all JSONs
-      await downloadAndCacheShards(manifest, (done, total) => {
-        setProgress({ done, total })
-      })
-      setIsCached(true)
+    // setLoading(true)
+    // setError(null)
+    // setProgress({ done: 0, total: 0 })
 
-      // spin up the offline pipeline
-      const p = await loadLocalModel(manifest)
-      setPipeline(p)
+    // try {
+    //   // fetch + cache shards + all JSONs
+    //   await downloadAndCacheShards(manifest, (done, total) => {
+    //     setProgress({ done, total })
+    //   })
+    //   setIsCached(true)
 
-    } catch (e: any) {
-      setError(`Error: ${e.message}`)
-    } finally {
-      setLoading(false)
-    }
+    //   // spin up the offline pipeline
+    //   const p = await loadLocalModel(manifest)
+    //   setPipeline(p)
+
+    // } catch (e: any) {
+    //   setError(`Error: ${e.message}`)
+    // } finally {
+    //   setLoading(false)
+    // }
   }, [manifest, loading, pipeline])
 
   const pct = progress.total
