@@ -1,48 +1,64 @@
-import React, { useEffect, useState } from "react";
-import { pipeline, env } from "@huggingface/transformers";
+import React, { useEffect, useState, useRef } from "react";
+import { pipeline, env, AutoTokenizer } from "@huggingface/transformers";
+import { Button } from "react-bootstrap";
 
 export default function TestingLlmPage() {
   const [result, setResult] = useState<string>("");
   const [userInput, setUserInput] = useState<string>("");
+  const [isLoading, setIsLoading]     = useState(false);
+  const [isReady, setIsReady]         = useState(false);
+  const [error, setError]             = useState<string | null>(null);
+  const [progress, setProgress]       = useState<Record<string, {loaded:number; total:number; status:string}>>({});
+  const [deviceLabel, setDeviceLabel] = useState("detecting…");
+
+  // 1) Tell Transformers.js where your models live
+  const MODEL_BASE = "https://d3b5vir3v79bpg.cloudfront.net/"; // <-- your S3/CF URL, must end with '/'
+  const MODEL_ID   = "Llama-3.2-1B-Instruct-q4f16";                               // <-- folder name under /models/
+  const DTYPE      = "auto";                                    // <-- or "fp16"/"fp32"/"auto" to match what you uploaded
+
+  const tokRef  = useRef<any>(null);
+  const pipeRef = useRef<any>(null);
 
   async function handleGenerate() {
     try {
-      // 1) Allow loading from the Hub
-      env.allowRemoteModels = true;
+      // Use your own bucket, not the Hub
+      env.localModelPath = MODEL_BASE;
+      env.allowLocalModels = true;
+      env.allowRemoteModels = false;
 
-      // 2) Force a stable backend first: WASM (then you can try webgpu)
-      env.backends.onnx.preferredBackend = "wasm";
+      // WebGPU for speed (fallback to WASM only if you want to)
+      // (No need to set 'preferredBackend' in v3 — set device on pipeline instead)
+      // Docs: https://huggingface.co/docs/transformers.js/en/guides/webgpu
+      const tok = await AutoTokenizer.from_pretrained(MODEL_ID);
 
-      // 3) Load the small quantized model
-      const pipe = await pipeline(
-        "text-generation",
-        "onnx-community/Llama-3.2-1B-Instruct-q4f16",
-        { device: "webgpu" }
-      );
+      // Use the model’s chat template so prompts match its expected format
+      // (works across Llama/Phi/Qwen/etc.)
+      // Docs: apply_chat_template is part of tokenizer in Transformers.js
+      const messages = [
+        { role: "system", content: "You are a helpful assistant." },
+        { role: "user",   content: userInput }
+      ];
+      const prompt = tok.apply_chat_template(messages, {
+        add_generation_prompt: true,
+        tokenize: false,
+      });
 
-      const user = userInput;
-      const prompt =
-        `<|begin_of_text|><|start_header_id|>system<|end_header_id|>
-        You are a concise travel expert.<|eot_id|>
-        <|start_header_id|>user<|end_header_id|>
-        ${user}<|eot_id|>
-        <|start_header_id|>assistant<|end_header_id|>
-        `;
+      const pipe = await pipeline("text-generation", MODEL_ID, {
+        device: "webgpu",
+        dtype: DTYPE,
+      });
 
-
-      // 4) Keep generation tiny to avoid OOM
-      const res = await pipe(prompt, {
-        max_new_tokens: 250,
-        do_sample: false,
-        temperature: 0.7, 
-        top_p: 0.9,
-        repetition_penalty: 1.1,
-        return_full_text: false
+      // @ts-expect-error transformers types don’t include generated_text on the union
+      const out = await pipe(prompt, {
+        max_new_tokens: 256,
+        temperature: 0.2,
+        top_k: 3,
+        return_full_text: false,
       });
 
       // This line below is used to ignore type errors like this
       // @ts-expect-error transformers types don’t include generated_text on the union
-      setResult(res[0].generated_text);
+      setResult(out[0].generated_text);
     } catch (err) {
       console.error(err);
       setResult("⚠️ Error running model");
@@ -64,9 +80,8 @@ export default function TestingLlmPage() {
 
       <br/>
 
-      <button onClick={handleGenerate} disabled={!userInput}>
-        Ask your question!
-      </button>
+      <Button variant="outline-primary" onClick={handleGenerate} disabled={!userInput}>Ask your question!</Button>
+    
 
       <p>
         {result}
