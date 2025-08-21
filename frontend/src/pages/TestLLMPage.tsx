@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
 import { pipeline, env, AutoTokenizer } from "@huggingface/transformers";
-import { Button } from "react-bootstrap";
 
 export default function TestingLlmPage() {
   const [result, setResult] = useState<string>("");
@@ -75,7 +74,7 @@ export default function TestingLlmPage() {
 
       <br/>
 
-      <Button variant="outline-primary" onClick={handleGenerate} disabled={!userInput}>Ask your question!</Button>
+      <button onClick={handleGenerate} disabled={!userInput}>Ask your question!</button>
     
 
       <p>

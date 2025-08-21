@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import AuthPage from "./pages/AuthPage";
+// import AuthPage from "./pages/AuthPage";
 import TestPage from "./pages/Test";
 
 function App() {
@@ -11,7 +11,7 @@ function App() {
         {/* <Route path="/" element={<MainPage />} /> */}
 
         {/* Auth form at /login */}
-        <Route path="/login" element={<AuthPage />} />
+        {/* <Route path="/login" element={<AuthPage />} /> */}
 
         {/* Protected React route at /test */}
         <Route path="/test" element={<TestPage />} />

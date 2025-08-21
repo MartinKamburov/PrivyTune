@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { Button } from "react-bootstrap";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -18,8 +17,8 @@ export function LogoutButton() {
   };
 
   return (
-    <Button variant="outline-primary" onClick={handleLogout}>
+    <button onClick={handleLogout}>
       Log out
-    </Button>
+    </button>
   );
 }
