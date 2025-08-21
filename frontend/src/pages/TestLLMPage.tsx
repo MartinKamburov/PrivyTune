@@ -5,11 +5,6 @@ import { Button } from "react-bootstrap";
 export default function TestingLlmPage() {
   const [result, setResult] = useState<string>("");
   const [userInput, setUserInput] = useState<string>("");
-  const [isLoading, setIsLoading]     = useState(false);
-  const [isReady, setIsReady]         = useState(false);
-  const [error, setError]             = useState<string | null>(null);
-  const [progress, setProgress]       = useState<Record<string, {loaded:number; total:number; status:string}>>({});
-  const [deviceLabel, setDeviceLabel] = useState("detecting…");
 
   // 1) Tell Transformers.js where your models live
   const MODEL_BASE = "https://d3b5vir3v79bpg.cloudfront.net/"; // <-- your S3/CF URL, must end with '/'
@@ -61,7 +56,7 @@ export default function TestingLlmPage() {
       setResult(out[0].generated_text);
     } catch (err) {
       console.error(err);
-      setResult("⚠️ Error running model");
+      setResult("⚠️ Error running model, most likely because you don't have a GPU");
     }
 
   };

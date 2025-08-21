@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AuthPage from "./pages/AuthPage";
 import TestPage from "./pages/Test";
-import MainPage from "./pages/MainPage";
 
 function App() {
 
@@ -9,7 +8,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         {/* Currently the main page / */}
-        <Route path="/" element={<MainPage />} />
+        {/* <Route path="/" element={<MainPage />} /> */}
 
         {/* Auth form at /login */}
         <Route path="/login" element={<AuthPage />} />
