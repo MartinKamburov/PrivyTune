@@ -4,6 +4,7 @@ import ArrowRightIcon from "../components/icons/ArrowRightIcon";
 import StopIcon from "../components/icons/StopIcon";
 import Progress from "../components/Progress";
 import LLMModelDropdown from "../components/PopupButton";
+import TrainModel from "../components/TrainModel";
 
 /** WebGPU feature check (typed so TS doesn't complain about navigator.gpu) */
 const IS_WEBGPU_AVAILABLE: boolean =
@@ -217,7 +218,7 @@ function MainPage() {
   }, [messages, isRunning]);
 
   return IS_WEBGPU_AVAILABLE ? (
-    <div className="flex flex-col h-screen mx-auto items justify-end text-gray-800 dark:text-gray-200 bg-white dark:bg-gray-900">
+    <div className="flex flex-col h-screen mx-auto items justify-end text-gray-800 dark:text-white bg-white dark:bg-zinc-800">
       {status === null && messages.length === 0 && (
         <div className="h-full overflow-auto scrollbar-thin flex justify-center items-center flex-col relative">
           <div className="flex flex-col items-center mb-1 max-w-[340px] text-center">
@@ -239,7 +240,8 @@ function MainPage() {
 
             <div>
               <button
-                className="border px-4 py-2 rounded-lg bg-blue-400 text-white hover:bg-blue-500 disabled:bg-blue-100 disabled:cursor-not-allowed select-none"
+                className="text-white bg-gradient-to-br from-purple-600 to-blue-500 hover:bg-gradient-to-bl focus:ring-4 focus:outline-none focus:ring-blue-300 dark:focus:ring-blue-800 font-medium rounded-lg text-sm px-5 py-2.5 text-center me-2 mb-2 isabled:cursor-not-allowed select-none"
+                // className="border px-4 py-2 rounded-lg bg-blue-400 text-white hover:bg-blue-500 disabled:bg-blue-100 disabled:cursor-not-allowed select-none"
                 onClick={() => {
                   if (!modelSelected) return;
                   worker.current?.postMessage({ type: "load", data: modelSelected } satisfies WorkerCommand);
@@ -258,6 +260,8 @@ function MainPage() {
               />
             </div>
 
+
+            <TrainModel />
           </div>
         </div>
       )}
@@ -330,7 +334,7 @@ function MainPage() {
         <textarea
           ref={textareaRef}
           className="scrollbar-thin w-[550px] dark:bg-gray-700 px-3 py-4 rounded-lg bg-transparent border-none outline-none text-gray-800 disabled:text-gray-400 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 disabled:placeholder-gray-200 resize-none disabled:cursor-not-allowed"
-          placeholder="Type your message..."
+          placeholder="Ask anything..."
           rows={1}
           value={input}
           disabled={status !== "ready"}
