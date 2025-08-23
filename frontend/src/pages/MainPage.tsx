@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-
 import Chat from "../components/Chat";
 import ArrowRightIcon from "../components/icons/ArrowRightIcon";
 import StopIcon from "../components/icons/StopIcon";
 import Progress from "../components/Progress";
+import LLMModelDropdown from "../components/PopupButton";
 
 /** WebGPU feature check (typed so TS doesn't complain about navigator.gpu) */
 const IS_WEBGPU_AVAILABLE: boolean =
@@ -12,9 +12,9 @@ const IS_WEBGPU_AVAILABLE: boolean =
 const STICKY_SCROLL_THRESHOLD = 120;
 
 const EXAMPLES: readonly string[] = [
-  "Give me some tips to improve my time management skills.",
-  "What is the difference between AI and ML?",
-  "Write python code to compute the nth fibonacci number.",
+  "Can you give me some travel tips for my trip to Paris, France.",
+  "Write a Java function which gives me the area of rectangle.",
+  "Explain the difference between weather and climate?"
 ];
 
 /** ========== Types ========== */
@@ -37,27 +37,37 @@ interface ProgressItem {
   loaded?: number;
 }
 
-/** Messages coming FROM the worker */
+/** Messages FROM the worker → UI */
 type WorkerResponse =
-  | { status: "loading"; data: string }
+  | { status: "loading"; data: string; }
   | { status: "initiate"; file: string; progress?: number; total?: number }
   | { status: "progress"; file: string; progress: number; total?: number }
   | { status: "done"; file: string }
   | { status: "ready" }
   | { status: "start" }
   | { status: "update"; output: string; tps: number; numTokens: number }
-  | { status: "complete" }
+  | { status: "complete"; output: string[] }
   | { status: "error"; data: string };
 
-/** Messages going TO the worker */
+/** Messages TO the worker */
 type WorkerCommand =
-  | { type: "check" }
-  | { type: "load" }
-  | { type: "reset" }
-  | { type: "interrupt" }
+  | { type: "check"; data?: never }
+  | { type: "load"; data?: string }
+  | { type: "reset"; data?: never }
+  | { type: "interrupt"; data?: never }
   | { type: "generate"; data: ChatMessage[] };
 
-function App() {
+const MODELS = [
+  "onnx-community/Llama-3.2-1B-Instruct-q4f16",
+  "onnx-community/Phi-3.5-mini-instruct-onnx-web",
+  "onnx-community/DeepSeek-R1-Distill-Qwen-1.5B-ONNX",
+  "onnx-community/gemma-2-2b-jpn-it",
+]
+
+function MainPage() {
+  /** ----- LLM Model Choice----- */
+  const [modelSelected, setModelSelected] = useState<string>("");
+
   /** ----- Refs ----- */
   const worker = useRef<Worker | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -105,7 +115,7 @@ function App() {
   /** ----- Worker setup / event handling (runs once) ----- */
   useEffect(() => {
     if (!worker.current) {
-      worker.current = new Worker(new URL("../utils/LlmWorker.ts", import.meta.url), { type: "module" });
+      worker.current = new Worker(new URL("../utils/LoadLocalModel.ts", import.meta.url), { type: "module" });
       worker.current.postMessage({ type: "check" } satisfies WorkerCommand);
     }
 
@@ -211,53 +221,13 @@ function App() {
       {status === null && messages.length === 0 && (
         <div className="h-full overflow-auto scrollbar-thin flex justify-center items-center flex-col relative">
           <div className="flex flex-col items-center mb-1 max-w-[340px] text-center">
-            <img src="logo.png" width="75%" height="auto" className="block" />
-            <h1 className="text-4xl font-bold mb-1">Llama-3.2 WebGPU</h1>
-            <h2 className="font-semibold">
-              A private and powerful AI chatbot <br />
-              that runs locally in your browser.
-            </h2>
+            <h1 className="text-4xl font-bold mb-1">Load local LLM models within the browser!</h1>
           </div>
 
           <div className="flex flex-col items-center px-4">
             <p className="max-w-[514px] mb-4">
               <br />
-              You are about to load{" "}
-              <a
-                href="https://huggingface.co/onnx-community/Llama-3.2-1B-Instruct-q4f16"
-                target="_blank"
-                rel="noreferrer"
-                className="font-medium underline"
-              >
-                Llama-3.2-1B-Instruct
-              </a>
-              , a 1.24 billion parameter LLM that is optimized for inference on the web. Once
-              downloaded, the model (1.15&nbsp;GB) will be cached and reused when you revisit the
-              page.
-              <br />
-              <br />
-              Everything runs directly in your browser using{" "}
-              <a
-                href="https://huggingface.co/docs/transformers.js"
-                target="_blank"
-                rel="noreferrer"
-                className="underline"
-              >
-                🤗&nbsp;Transformers.js
-              </a>{" "}
-              and ONNX Runtime Web, meaning your conversations aren&#39;t sent to a server. You can
-              even disconnect from the internet after the model has loaded!
-              <br />
-              Want to learn more? Check out the demo's source code on{" "}
-              <a
-                href="https://github.com/huggingface/transformers.js-examples/tree/main/llama-3.2-webgpu"
-                target="_blank"
-                rel="noreferrer"
-                className="underline"
-              >
-                GitHub
-              </a>
-              !
+              You can load any model that you like and even work without wifi if needed. We load LLM models using Transformers.js and Huggingface machine learning models and everything was made possible from them. 
             </p>
 
             {error && (
@@ -267,16 +237,27 @@ function App() {
               </div>
             )}
 
-            <button
-              className="border px-4 py-2 rounded-lg bg-blue-400 text-white hover:bg-blue-500 disabled:bg-blue-100 disabled:cursor-not-allowed select-none"
-              onClick={() => {
-                worker.current?.postMessage({ type: "load" } satisfies WorkerCommand);
-                setStatus("loading");
-              }}
-              disabled={status !== null || error !== null}
-            >
-              Load model
-            </button>
+            <div>
+              <button
+                className="border px-4 py-2 rounded-lg bg-blue-400 text-white hover:bg-blue-500 disabled:bg-blue-100 disabled:cursor-not-allowed select-none"
+                onClick={() => {
+                  if (!modelSelected) return;
+                  worker.current?.postMessage({ type: "load", data: modelSelected } satisfies WorkerCommand);
+                  setStatus("loading");
+                }}
+                disabled={status !== null || error !== null}
+              >
+                Load model
+              </button>
+              
+              <LLMModelDropdown
+                models={MODELS}
+                value={modelSelected}
+                onChange={(m) => { console.log("picked:", m); setModelSelected(m); }}
+                placeholder="Choose LLM model"
+              />
+            </div>
+
           </div>
         </div>
       )}
@@ -382,12 +363,13 @@ function App() {
       </p>
     </div>
   ) : (
+    // Add cpu support, if the user doesn't have a gpu it will just use cpu
     <div className="fixed w-screen h-screen bg-black z-10 bg-opacity-[92%] text-white text-2xl font-semibold flex justify-center items-center text-center">
-      WebGPU is not supported
+      WebGPU is not supported 
       <br />
       by this browser :&#40;
     </div>
   );
 }
 
-export default App;
+export default MainPage;
