@@ -5,6 +5,7 @@ import StopIcon from "../components/icons/StopIcon";
 import Progress from "../components/Progress";
 import LLMModelDropdown from "../components/PopupButton";
 import TrainModel from "../components/TrainModel";
+import FormatUserInput from "../components/FormatUserInput";
 
 /** WebGPU feature check (typed so TS doesn't complain about navigator.gpu) */
 const IS_WEBGPU_AVAILABLE: boolean =
@@ -262,6 +263,7 @@ function MainPage() {
 
 
             <TrainModel />
+            <FormatUserInput />
           </div>
         </div>
       )}
