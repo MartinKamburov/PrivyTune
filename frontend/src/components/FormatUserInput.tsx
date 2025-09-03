@@ -68,9 +68,9 @@ export default function FormatUserInput({ usersInputData }: Props) {
                 </span>
             </button>
 
-            {/* {result && (
+            {result && (
                 <p className="mt-4 p-2 bg-gray-100 rounded text-black">{result}</p>
-            )} */}
+            )}
         </div>
     );
 };
