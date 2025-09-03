@@ -6,6 +6,25 @@ import Progress from "../components/Progress";
 import LLMModelDropdown from "../components/PopupButton";
 import TrainModel from "../components/TrainModel";
 import FormatUserInput from "../components/FormatUserInput";
+// import { InferenceClient } from "@huggingface/inference";
+
+// const HuggingFaceAPI = new InferenceClient(import.meta.env.VITE_HUGGINGFACE_KEY);
+
+// const chatCompletion = await HuggingFaceAPI.chatCompletion({
+//   model: "openai/gpt-oss-20b",
+//   messages: [
+//       {
+//       role: "user",
+//       content: `Can you make me a file in json format which contains the text that I provide you which contains 
+//         { "prompt": "important question extracted from the text that is provided", "completion": "answer to the important question which was extracted" }. 
+//         I want you to summarize the text that I provide in the format explained above, the prompt must contain important questions which would be used to train a large language model, 
+//         and the completion answer to the important question which is used to summarize the text that was provided. Here is the text that I am talking about: `,
+
+//       },
+//   ],
+// });
+
+// console.log(chatCompletion.choices[0].message.content);
 
 /** WebGPU feature check (typed so TS doesn't complain about navigator.gpu) */
 const IS_WEBGPU_AVAILABLE: boolean =
@@ -65,6 +84,8 @@ const MODELS = [
   "onnx-community/DeepSeek-R1-Distill-Qwen-1.5B-ONNX",
   "onnx-community/gemma-2-2b-jpn-it",
 ]
+
+const UsersData: string = "In the sweltering summer of 1150, Sofia, the capital city of Bulgaria, bustled with life. The sun beat down on the cobblestone streets, casting a golden glow over the thatched roofs of the medieval houses. The air was thick with the smell of woodsmoke, baking bread, and the distant tang of fresh herbs. Aisha, a young woman from a humble family, walked to the market with her mother, carrying a basket of fresh vegetables and a few loaves of bread. She wore a simple tunic and leggings, made of wool and linen, and her dark hair was tied back in a loose braid. Aisha's eyes sparkled with excitement as she scanned the stalls for the day's fresh produce. As she walked, Aisha passed by the grandiose churches and monasteries that dotted the landscape. The sound of chanting and the scent of incense wafted from the nearby monastery, where the monks were preparing for the evening service. Aisha's heart swelled with pride as she thought of the community that gathered there, united in their faith and their love for one another. After the market, Aisha joined her friends in the town square, where they were playing a lively game of chess. The sun was beginning to set, casting a warm orange glow over the scene. The sound of laughter and music filled the air, mingling with the clinking of glasses and the murmur of conversations. As the stars began to twinkle in the night sky, Aisha made her way to the local tavern, where the villagers gathered to share stories and enjoy a mug of ale. The fire crackled in the hearth, casting a warm glow over the room. The sound of raucous laughter and the clinking of glasses filled the air, mingling with the scent of roasting meat and the distant sound of music from the nearby village. As the night wore on, Aisha retired to her family's small cottage, where she shared stories and laughter with her loved ones. The fire crackled in the hearth, casting a warm glow over the room. The sound of laughter and music filled the air, mingling with the scent of roasting meat and the distant sound of music from the nearby village. In the stillness of the night, Aisha drifted off to sleep, lulled by the sound of crickets and the distant rumble of the nearby river. The world outside was quiet, but in her heart, the sounds of the city – the laughter, the music, the clinking of glasses – continued to echo, a reminder of the vibrant community that lived in Sofia, in the 12th century.";
 
 function MainPage() {
   /** ----- LLM Model Choice----- */
@@ -263,7 +284,10 @@ function MainPage() {
 
 
             <TrainModel />
-            <FormatUserInput />
+            {/* Must input an object because thats what react accepts not just a string */}
+            <FormatUserInput 
+              usersInputData={UsersData}
+            />
           </div>
         </div>
       )}
