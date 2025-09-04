@@ -1,0 +1,8 @@
+Run this to setup the proper libraries to train your model:
+    pip install transformers datasets accelerate torch torchvision peft pillow
+
+running the virtual environment: 
+    myenv\Scripts\Activate.ps1
+
+Run the server using:
+    uvicorn main:app --reload
