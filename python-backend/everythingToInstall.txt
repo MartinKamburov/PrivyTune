@@ -1,8 +1,10 @@
 Run this to setup the proper libraries to train your model:
-    pip install transformers datasets accelerate torch torchvision peft pillow
+    - pip3 install transformers datasets accelerate peft pillow
+    This download of pytorch allows for GPU support:
+        - pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu126
 
 running the virtual environment: 
     myenv\Scripts\Activate.ps1
 
-Run the server using:
+Run the FastAPI server using:
     uvicorn main:app --reload
