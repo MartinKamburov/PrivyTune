@@ -1,42 +1,34 @@
 [
   {
-    "prompt": "What time period and city does the narrative describe?",
-    "completion": "The story is set in Sofia, Bulgaria, during the summer of the year 1150."
+    "prompt": "Who is Martin Kamburov?",
+    "completion": "Martin Kamburov is a Bulgarian Software Developer from Richmond Hill."
   },
   {
-    "prompt": "Who is the main character and what is her background?",
-    "completion": "Aisha is a young woman from a modest family who travels with her mother to the market and later engages in communal activities."
+    "prompt": "What profession is Martin Kamburov in?",
+    "completion": "Martin Kamburov works as a Software Developer, focusing on building web applications and AI projects."
   },
   {
-    "prompt": "What does the market scene reveal about daily life in 12th‑century Sofia?",
-    "completion": "The market shows bustling commerce, local produce, and a rustic atmosphere with cobblestone streets, thatched roofs, and the scent of fresh bread and herbs."
+    "prompt": "Where is Martin Kamburov from?",
+    "completion": "Martin Kamburov is originally from Bulgaria and is currently based in Richmond Hill, Canada."
   },
   {
-    "prompt": "How is the religious community portrayed in the story?",
-    "completion": "The monastery is depicted as a center of faith where monks chant and incense wafts, highlighting its importance as a communal spiritual hub."
+    "prompt": "What is Martin Kamburov passionate about?",
+    "completion": "Martin Kamburov is passionate about programming, artificial intelligence, and building full-stack software solutions."
   },
   {
-    "prompt": "What social activities does Aisha participate in during the day?",
-    "completion": "Aisha shops for produce, plays chess with friends in the square, and later joins villagers in the tavern for stories and ale."
+    "prompt": "Which technologies does Martin Kamburov use?",
+    "completion": "Martin Kamburov frequently works with React, TypeScript, Java Spring Boot, Python, and AI/ML frameworks such as PyTorch."
   },
   {
-    "prompt": "How does the setting of the tavern contribute to the sense of community?",
-    "completion": "The tavern, with its warm hearth, crackling fire, and lively conversation, serves as a gathering place where villagers bond over food, music, and shared tales."
+    "prompt": "What kind of projects has Martin Kamburov worked on?",
+    "completion": "Martin Kamburov has developed projects including AI chatbots, scheduling software, and real estate listing automation tools."
   },
   {
-    "prompt": "What sensory details help convey the atmosphere of the city?",
-    "completion": "Sensory cues such as woodsmoke, baking bread, fresh herbs, chanting, laughter, and music immerse the reader in Sofia’s vibrant ambience."
+    "prompt": "What role has Martin Kamburov had as an instructor?",
+    "completion": "Martin Kamburov has worked as a Programming and Robotics Instructor, teaching students how to code and build AI-powered applications."
   },
   {
-    "prompt": "How does the narrative portray the relationship between Aisha and her family?",
-    "completion": "Aisha’s return to her family’s cottage illustrates close bonds, shared meals, and storytelling that reinforce home life after a day of communal activities."
-  },
-  {
-    "prompt": "What role does music and laughter play in the community depicted?",
-    "completion": "Music and laughter act as social glue, fostering unity and joy among townspeople, especially during communal gatherings like the tavern."
-  },
-  {
-    "prompt": "How does the ending reflect the broader theme of community life?",
-    "completion": "Aisha sleeping while city sounds echo in her mind underscores the enduring influence of communal life on individual consciousness, even in quiet moments."
+    "prompt": "What are Martin Kamburov’s long-term goals?",
+    "completion": "Martin Kamburov aims to become a leading software engineer, contributing to AI research and building innovative applications."
   }
 ]

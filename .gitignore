@@ -40,4 +40,6 @@ Desktop.ini
 # Python LLM local folder shards
 __pycache__/
 myenv/
+trainer_output/
+my-qwen/
 

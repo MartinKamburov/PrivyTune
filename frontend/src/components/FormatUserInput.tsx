@@ -24,6 +24,7 @@ export default function FormatUserInput({ usersInputData }: Props) {
 
                         Guidelines:
                         - Extract key questions that capture the most important concepts, facts, relationships, or themes from the text, whether it is narrative, informational, or technical.
+                        - Make sure the prompt has a mention of the texts name or context
                         - Ensure each completion is no longer than 2–3 sentences.
                         - Write questions that an intelligent reader would naturally ask about the text.
                         - Avoid trivial details; focus on what summarizes the story and context best.
@@ -49,7 +50,7 @@ export default function FormatUserInput({ usersInputData }: Props) {
 
             const link = document.createElement("a");
             link.href = url;
-            link.download = "huggingface_output.json"; // file name
+            link.download = "input_data.json"; // file name
             link.click();
 
             // cleanup

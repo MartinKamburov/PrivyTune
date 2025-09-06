@@ -5,9 +5,10 @@ from transformers import AutoModelForCausalLM, TrainingArguments, Trainer
 import torch
 
 raw_data = load_dataset("json", data_files="huggingface_output.json")
+model_checkpoint = "Qwen/Qwen2.5-3B-Instruct"
 
 tokenizer = AutoTokenizer.from_pretrained(
-    "Qwen/Qwen2.5-3B-Instruct"
+    model_checkpoint
 )
 
 
@@ -30,7 +31,7 @@ data = raw_data.map(preprocess)
 print(data["train"][1])
 
 model = AutoModelForCausalLM.from_pretrained(
-    "Qwen/Qwen2.5-3B-Instruct",
+    model_checkpoint,
     device_map="cuda",
     torch_dtype=torch.float16
 )
@@ -43,9 +44,11 @@ lora_config = LoraConfig(
 model = get_peft_model(model, lora_config)
 
 train_args = TrainingArguments(
-    num_train_epochs=10,
+    # Too many epochs can lead to data memorization, and noise and specific examples
+    # In our case this might work since we want to specialize on the custom data that we provide it
+    num_train_epochs=25,
     learning_rate=0.001,
-    logging_steps=25,
+    logging_steps=30,
     fp16=True
 )
 
@@ -55,4 +58,7 @@ trainer = Trainer(
     train_dataset=data["train"]
 )
 
-trainer.train()
+print(trainer.train())
+
+trainer.save_model("./my-qwen")
+tokenizer.save_pretrained("./my-qwen")
