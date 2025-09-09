@@ -46,9 +46,9 @@ model = get_peft_model(model, lora_config)
 train_args = TrainingArguments(
     # Too many epochs can lead to data memorization, and noise and specific examples
     # In our case this might work since we want to specialize on the custom data that we provide it
-    num_train_epochs=25,
+    num_train_epochs=30,
     learning_rate=0.001,
-    logging_steps=30,
+    logging_steps=25,
     fp16=True
 )
 

@@ -31,7 +31,7 @@ generator = pipeline(
 )
 
 # Ask your custom-trained model a question
-prompt = "What kind of projects has Martin Kamburov worked on?"
+prompt = "What is Martin Kamburov passionate about?"
 response = generator(
     prompt,
     max_length=200,     # control output length
