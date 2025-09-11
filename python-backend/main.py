@@ -1,23 +1,14 @@
-# from fastapi import FastAPI
-
-# app = FastAPI()
-
-# @app.get("/")
-# def root():
-#     return {"Test": "Hello"}
-
-# @app.get("/train")
-# def train_llm():
-
-#     return {"Hello": "World"}
-# main.py
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from pathlib import Path
 import subprocess, sys, json, tempfile
+import uuid
 
 app = FastAPI(title="PrivyTune Trainer")
+
+RUNS_DIR = Path("runs")
+RUNS_DIR.mkdir(exist_ok=True)
 
 # Allow your React dev server
 app.add_middleware(

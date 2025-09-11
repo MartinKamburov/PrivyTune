@@ -87,7 +87,45 @@ const MODELS = [
 
 const UsersData: string = "In the sweltering summer of 1150, Sofia, the capital city of Bulgaria, bustled with life. The sun beat down on the cobblestone streets, casting a golden glow over the thatched roofs of the medieval houses. The air was thick with the smell of woodsmoke, baking bread, and the distant tang of fresh herbs. Aisha, a young woman from a humble family, walked to the market with her mother, carrying a basket of fresh vegetables and a few loaves of bread. She wore a simple tunic and leggings, made of wool and linen, and her dark hair was tied back in a loose braid. Aisha's eyes sparkled with excitement as she scanned the stalls for the day's fresh produce. As she walked, Aisha passed by the grandiose churches and monasteries that dotted the landscape. The sound of chanting and the scent of incense wafted from the nearby monastery, where the monks were preparing for the evening service. Aisha's heart swelled with pride as she thought of the community that gathered there, united in their faith and their love for one another. After the market, Aisha joined her friends in the town square, where they were playing a lively game of chess. The sun was beginning to set, casting a warm orange glow over the scene. The sound of laughter and music filled the air, mingling with the clinking of glasses and the murmur of conversations. As the stars began to twinkle in the night sky, Aisha made her way to the local tavern, where the villagers gathered to share stories and enjoy a mug of ale. The fire crackled in the hearth, casting a warm glow over the room. The sound of raucous laughter and the clinking of glasses filled the air, mingling with the scent of roasting meat and the distant sound of music from the nearby village. As the night wore on, Aisha retired to her family's small cottage, where she shared stories and laughter with her loved ones. The fire crackled in the hearth, casting a warm glow over the room. The sound of laughter and music filled the air, mingling with the scent of roasting meat and the distant sound of music from the nearby village. In the stillness of the night, Aisha drifted off to sleep, lulled by the sound of crickets and the distant rumble of the nearby river. The world outside was quiet, but in her heart, the sounds of the city – the laughter, the music, the clinking of glasses – continued to echo, a reminder of the vibrant community that lived in Sofia, in the 12th century.";
 
-const TESTINGDATA: string = ""
+// type QAItem = {
+//   prompt: string;
+//   completion: string;
+// };
+
+// const TESTINGDATA: QAItem[] = [
+//   {
+//     prompt: "Who is Martin Kamburov?",
+//     completion: "Martin Kamburov is a Bulgarian Software Developer from Richmond Hill."
+//   },
+//   {
+//     prompt: "What profession is Martin Kamburov in?",
+//     completion: "Martin Kamburov works as a Software Developer, focusing on building web applications and AI projects."
+//   },
+//   {
+//     prompt: "Where is Martin Kamburov from?",
+//     completion: "Martin Kamburov is originally from Bulgaria and is currently based in Richmond Hill, Canada."
+//   },
+//   {
+//     prompt: "What is Martin Kamburov passionate about?",
+//     completion: "Martin Kamburov is passionate about programming, artificial intelligence, and building full-stack software solutions."
+//   },
+//   {
+//     prompt: "Which technologies does Martin Kamburov use?",
+//     completion: "Martin Kamburov frequently works with React, TypeScript, Java Spring Boot, Python, and AI/ML frameworks such as PyTorch."
+//   },
+//   {
+//     prompt: "What kind of projects has Martin Kamburov worked on?",
+//     completion: "Martin Kamburov has developed projects including AI chatbots, scheduling software, and real estate listing automation tools."
+//   },
+//   {
+//     prompt: "What role has Martin Kamburov had as an instructor?",
+//     completion: "Martin Kamburov has worked as a Programming and Robotics Instructor, teaching students how to code and build AI-powered applications."
+//   },
+//   {
+//     prompt: "What are Martin Kamburov’s long-term goals?",
+//     completion: "Martin Kamburov aims to become a leading software engineer, contributing to AI research and building innovative applications."
+//   }
+// ];
 
 function MainPage() {
   /** ----- LLM Model Choice----- */
@@ -291,7 +329,7 @@ function MainPage() {
               // where to save the LoRA adapters
               outputDir="C:\\Users\\marti\\OneDrive\\Desktop\\Software Projects\\PrivyTune\\python-backend\\my-qwen-lora"
               // for quick testing, send your UsersData string directly:
-              datasetText={UsersData}
+              dataFile="C:\\Users\\marti\\OneDrive\\Desktop\\Software Projects\\PrivyTune\\python-backend\\huggingface_output.json"
             />
 
             {/* Must input an object because thats what react accepts not just a string */}
